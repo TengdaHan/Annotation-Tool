@@ -22,7 +22,7 @@ function varargout = snip_1(varargin)
 
 % Edit the above text to modify the response to help snip_1
 
-% Last Modified by GUIDE v2.5 26-May-2016 20:48:21
+% Last Modified by GUIDE v2.5 28-Jun-2016 23:55:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -140,6 +140,7 @@ javax.imageio.ImageIO.write(image1,'jpg',filehandle);
 I = imread('full_scr');
 I2 = imcrop(I);
 imshow(I2);
+delete('full_scr');
 
 % --- Executes on key press with focus on Start_button and none of its controls.
 function Start_button_KeyPressFcn(hObject, eventdata, handles)
@@ -149,7 +150,6 @@ function Start_button_KeyPressFcn(hObject, eventdata, handles)
 %	Character: character interpretation of the key(s) that was pressed
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
-
 
 function edit4_Callback(hObject, eventdata, handles)
 % hObject    handle to edit4 (see GCBO)
@@ -172,8 +172,6 @@ function edit4_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
 
 function url_link_Callback(hObject, eventdata, handles)
 % hObject    handle to url_link (see GCBO)
@@ -215,8 +213,8 @@ function save_Callback(hObject, eventdata, handles)
 % hObject    handle to save (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global object_name I2 object_affordance object_path image_path object_link object_coord...
-    object_v_check  rootdb ROOT_PATH rect_obj rect_pose
+global object_name I2 object_affordance object_path image_path object_link ...
+    object_v_check  rootdb ROOT_PATH rect_obj rect_pose 
 
 % delete the intermediate file
 try
@@ -230,7 +228,7 @@ imwrite(I2,[ROOT_PATH,'\',object_name,'.png']);
 object_path = [ROOT_PATH,'\',object_name,'.png'];
 %object_path = which([object_name,'.png']);
 
-[x,y,z] = size(I2);
+[x,y,~] = size(I2);
 rootdb.db.(object_name).width = y;
 rootdb.db.(object_name).height = x;
 rootdb.db.(object_name).affordance = object_affordance;
@@ -241,8 +239,10 @@ rootdb.db.(object_name).link = object_link;
 rootdb.db.(object_name).video_check = object_v_check;
 rootdb.db.(object_name).pos_obj = rect_obj;
 rootdb.db.(object_name).pos_pose = rect_pose;
+rect_obj = [];
+rect_pose = [];
 save('rootdb.mat','rootdb');
-delete('full_scr');
+
 
 
 % --- Executes on button press in pushbutton5.
@@ -252,7 +252,7 @@ function pushbutton5_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global rect_obj
 h_obj = imrect;
-rect_obj = getPosition(h_obj);
+rect_obj = [rect_obj; getPosition(h_obj)];
 % rect_obj = getrect;
 % rectangle('Position', rect_obj, 'EdgeColor', 'b');
 
@@ -263,6 +263,47 @@ function pushbutton6_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global rect_pose
 h_pose = imrect;
-rect_pose = getPosition(h_pose);
+rect_pose = [rect_pose;getPosition(h_pose)];
 % rect_pose = getrect;
 % rectangle('Position', rect_pose, 'EdgeColor', 'r');
+
+
+% --------------------------------------------------------------------
+function file_Callback(hObject, eventdata, handles)
+% hObject    handle to file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function edit_Callback(hObject, eventdata, handles)
+% hObject    handle to edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function view_Callback(hObject, eventdata, handles)
+% hObject    handle to view (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function load_Callback(hObject, eventdata, handles)
+% hObject    handle to load (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global I I2
+[filename,loadpath] = uigetfile('*.*','Source Selector');
+I = imread(strcat(loadpath,filename));
+I2 = imcrop(I);
+imshow(I2);
+loadpath = 'None';
+
+% --- Executes during object creation, after setting all properties.
+function load_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to load (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
