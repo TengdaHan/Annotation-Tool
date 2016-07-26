@@ -22,7 +22,7 @@ function varargout = snip_1(varargin)
 
 % Edit the above text to modify the response to help snip_1
 
-% Last Modified by GUIDE v2.5 21-Jul-2016 21:30:01
+% Last Modified by GUIDE v2.5 26-Jul-2016 08:30:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,7 +63,6 @@ global ROOT_PATH object_name object_affordance ...
     object_path image_path object_link object_coord object_v_check
 fp = fopen('annotation.config', 'r');
 ROOT_PATH = fscanf(fp, '%s');
-disp(ROOT_PATH)
 object_name = 0;
 object_affordance = 0;
 object_path = 0;
@@ -148,20 +147,20 @@ function start_screenshot_KeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 
-function edit4_Callback(hObject, eventdata, handles)
-% hObject    handle to edit4 (see GCBO)
+function edit_affordance_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_affordance (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit4 as text
-%        str2double(get(hObject,'String')) returns contents of edit4 as a double
+% Hints: get(hObject,'String') returns contents of edit_affordance as text
+%        str2double(get(hObject,'String')) returns contents of edit_affordance as a double
 global object_affordance
 object_affordance = strsplit(get(hObject,'String'),',');
 
 
 % --- Executes during object creation, after setting all properties.
-function edit4_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit4 (see GCBO)
+function edit_affordance_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_affordance (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -171,19 +170,19 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-function url_link_Callback(hObject, eventdata, handles)
-% hObject    handle to url_link (see GCBO)
+function edit_url_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_url (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of url_link as text
-%        str2double(get(hObject,'String')) returns contents of url_link as a double
+% Hints: get(hObject,'String') returns contents of edit_url as text
+%        str2double(get(hObject,'String')) returns contents of edit_url as a double
 global object_link
 object_link = get(hObject,'String');
 
 % --- Executes during object creation, after setting all properties.
-function url_link_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to url_link (see GCBO)
+function edit_url_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_url (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -194,13 +193,13 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in checkbox1.
-function checkbox1_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox1 (see GCBO)
+% --- Executes on button press in checkbox_video.
+function checkbox_video_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_video (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state_text of checkbox1
+% Hint: get(hObject,'Value') returns toggle state_text of checkbox_video
 global object_v_check
 object_v_check = get(hObject,'Value');
 
@@ -244,19 +243,28 @@ end
 
 %auto-name
 object_name_n = strcat(object_name,num2str(rootdb.name.(object_name)));
+
 %save file
-try
-    imwrite(I2,[ROOT_PATH,'\',object_name_n,'.png']);
-catch
-    mkdir(ROOT_PATH);
-    imwrite(I2,[ROOT_PATH,'\',object_name_n,'.png']);
-    helpdlg(['Directory "',ROOT_PATH,'" is created'],'Info');
+if not (isempty(I2));
+    try
+        imwrite(I2,fullfile(ROOT_PATH,[object_name_n,'.png']));
+    catch
+        mkdir(ROOT_PATH);
+        imwrite(I2,fullfile(ROOT_PATH,[object_name_n,'.png']));
+        helpdlg(['Directory "',ROOT_PATH,'" is created'],'Info');
+    end
+    %get path
+    object_path = fullfile(ROOT_PATH,[object_name_n,'.png']);
+    [x,y,~] = size(I2);
+    clear I2;
+else
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    object_path = fullfile(folder_name);
+    [x,y,~] = size(I);
 end
-%get path
-object_path = [ROOT_PATH,'\',object_name_n,'.png'];
+
 %save info to database
-[x,y,~] = size(I2);
-clear I2;
+
 rootdb.db.(object_name_n).width = y;
 rootdb.db.(object_name_n).height = x;
 rootdb.db.(object_name_n).affordance = object_affordance;
@@ -293,7 +301,7 @@ else
     state_str = sprintf('%s\n%s\n%s','Annotation saved,','Click "Crop" to crop,','Or Click "Skip & Next".');
     set(handles.state_text,'String',state_str);
     
-    I = imread(strcat(folder_name,'\',filename_cell{1,file_index}));
+    I = imread(fullfile(folder_name,filename_cell{1,file_index}));
     imshow(I);
 %     I2 = imcrop(I);
 %     imshow(I2);
@@ -505,7 +513,7 @@ set(handles.index_text,'String',index_str);
 state_str = sprintf('%s\n%s','Click "Crop" to crop','Or Click "Skip & Next.');
 set(handles.state_text,'String',state_str);
 
-I = imread(strcat(folder_name,'\',filename_cell{1,file_index}));
+I = imread(fullfile(folder_name,filename_cell{1,file_index}));
 imshow(I);
 
 
@@ -525,8 +533,9 @@ else
     for i = 3:dir_length;
         filename_cell{1,i-2} = dir_info(i).name;
     end
-    I = imread(strcat(folder_name,'\',dir_info(i).name));
+    I = imread(fullfile(folder_name,dir_info(i).name));
     imshow(I);
+    I2 = [];
     
     file_index = 1;
     index_str = ['Index: ','1','/',num2str(dir_length-2)];
@@ -571,10 +580,12 @@ object_v_check = 0;
 clear I2 rect_obj rect_pose wrist1_xy wrist2_xy elbow1_xy elbow2_xy...
     shoulder1_xy shoulder2_xy head_xy
 
-I2 = imcrop(I);
+% I2 = imcrop(I);
+% axes(handles.axes2);
+% imshow(I2);
 axes(handles.axes2);
-imshow(I2);
-
+imshow(I);
+I2 = [];
 
 % --- Executes during object creation, after setting all properties.
 function index_text_CreateFcn(hObject, eventdata, handles)
