@@ -236,12 +236,12 @@ if not (isempty(I2));
     %get path
     %file_path = fullfile(ROOT_PATH,[object_name_n,'.png']);
     file_path = fullfile(ROOT_PATH,[object_name,'.png']);
-    [~,file_name,~] = fileparts(file_path);
+    file_name = [object_name,'.png'];
     [x,y,~] = size(I2);
     clear I2;
 else
     file_path = fullfile(folder_name,filename_cell{1,file_index});
-    [~,file_name,~] = fileparts(file_path);
+    [~,file_name,~] = fileparts(filename);
     [x,y,~] = size(I);
 end
 
@@ -253,29 +253,27 @@ end
 % end
 
 rootdb.db.(file_name).(object_name) = struct;
-rootdb.db.(file_name).(object_name).affordance = strsplit(object_affordance,',');
-rootdb.db.(file_name).(object_name).position = rect_obj;
+rootdb.db.(file_path).(object_name).affordance = strsplit(object_affordance,',');
+rootdb.db.(file_path).(object_name).position = rect_obj;
 
-rootdb.db.(file_name).width = y;
-rootdb.db.(file_name).height = x;
+rootdb.db.(file_path).width = y;
+rootdb.db.(file_path).height = x;
 
-rootdb.db.(file_name).image_path = image_path;
-rootdb.db.(file_name).link = object_link;
-rootdb.db.(file_name).video_check = object_v_check;
+rootdb.db.(file_path).image_path = image_path;
+rootdb.db.(file_path).link = object_link;
+rootdb.db.(file_path).video_check = object_v_check;
 
-rootdb.db.(file_name).pos_pose = rect_pose;
-rootdb.db.(file_name).wrist_L = wrist1_xy;
-rootdb.db.(file_name).wrist_R = wrist2_xy;
-rootdb.db.(file_name).elbow_L = elbow1_xy;
-rootdb.db.(file_name).elbow_R = elbow2_xy;
-rootdb.db.(file_name).shoulder_L = shoulder1_xy;
-rootdb.db.(file_name).shoulder_R = shoulder2_xy;
-rootdb.db.(file_name).head = head_xy;
+rootdb.db.(file_path).pos_pose = rect_pose;
+rootdb.db.(file_path).wrist_L = wrist1_xy;
+rootdb.db.(file_path).wrist_R = wrist2_xy;
+rootdb.db.(file_path).elbow_L = elbow1_xy;
+rootdb.db.(file_path).elbow_R = elbow2_xy;
+rootdb.db.(file_path).shoulder_L = shoulder1_xy;
+rootdb.db.(file_path).shoulder_R = shoulder2_xy;
+rootdb.db.(file_path).head = head_xy;
 rect_obj = [];
 rect_pose = [];
 save('rootdb.mat','rootdb');
-clear rect_obj rect_pose wrist1_xy wrist2_xy ...
-    elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy
 
 %check whether screenshot mode or file loading mode
 if file_index == 0;
@@ -298,6 +296,7 @@ else
 %     I2 = imcrop(I);
 %     imshow(I2);
 end
+
 
 
 % --- Executes on button press in object_box.
@@ -372,13 +371,8 @@ function view_annotation_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global ROOT_PATH rootdb
 anno_name = uigetfile('*.*','View Annotation',ROOT_PATH);
-if isempty(anno_name);
-    return
-end
-
-[~,anno_filename,~] = fileparts(anno_name);
 imshow(strcat((ROOT_PATH),'\',anno_name));
-
+[~,anno_filename,~] = fileparts(anno_name);
 rectangle('Position',rootdb.db.(anno_filename).pos_obj,'Edgecolor','b');
 rectangle('Position',rootdb.db.(anno_filename).pos_pose,'Edgecolor','r');
 %display wrist
