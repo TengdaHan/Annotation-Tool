@@ -60,17 +60,29 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 global ROOT_PATH object_name object_affordance ...
-    file_path image_path object_link object_coord object_v_check rect_obj
+    file_path image_path object_link object_coord object_v_check rect_obj...
+    rect_pose wrist1_xy wrist2_xy ...
+    elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy
 fp = fopen('annotation.config', 'r');
 ROOT_PATH = fscanf(fp, '%s');
 object_name = [];
 object_affordance = [];
-rect_obj = [];
+
 file_path = 0;
 image_path = 0;
 object_link = 0;
 object_coord = 0;
 object_v_check = 0;
+
+rect_obj = [];
+rect_pose = [];
+wrist1_xy = [];
+wrist2_xy = [];
+elbow1_xy = [];
+elbow2_xy = [];
+shoulder1_xy = [];
+shoulder2_xy = [];
+head_xy = [];
 
 % UIWAIT makes snip_1 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -84,29 +96,6 @@ function varargout = snip_1_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-
-% edit object name
-function edit_object_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_object (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_object as text
-%        str2double(get(hObject,'String')) returns contents of edit_object as a double
-global object_name
-object_name = lower(get(hObject,'String'));
-
-% --- Executes during object creation, after setting all properties.
-function edit_object_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_object (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 % start button
 % --- Executes on button press in start_screenshot.
@@ -191,18 +180,14 @@ function save_Callback(hObject, eventdata, handles)
 global object_name I I2 object_affordance file_path image_path object_link ...
     object_v_check  rootdb ROOT_PATH rect_obj rect_pose wrist1_xy wrist2_xy ...
     elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy ...
-    file_index filename_cell folder_name
+    file_index filename_cell folder_name img_path
 
 %load database
 try
     load('rootdb.mat');
 catch
     helpdlg('no database present, a new database is created', 'Info');
-end
-
-%check rootdb.name exists
-if not (isfield(rootdb, 'name'));
-    rootdb.name = struct;
+    rootdb = struct;
 end
 
 %check object_name is not None
@@ -240,7 +225,11 @@ if not (isempty(I2));
     [x,y,~] = size(I2);
     clear I2;
 else
-    file_path = fullfile(folder_name,filename_cell{1,file_index});
+    if file_index == 0; %load image mode
+        file_path = img_path;
+    else
+        file_path = fullfile(folder_name,filename_cell{1,file_index});
+    end
     [~,file_name,~] = fileparts(file_path);
     [x,y,~] = size(I);
 end
@@ -251,10 +240,10 @@ end
 %     rootdb.db.(file_path).(object_name(i)).affordance = strsplit(object_affordance(i),',');
 %     rootdb.db.(file_path).(object_name(i)).position = rect_obj(i);
 % end
-
-rootdb.db.(file_name).(object_name) = struct;
-rootdb.db.(file_name).(object_name).affordance = strsplit(object_affordance,',');
-rootdb.db.(file_name).(object_name).position = rect_obj;
+rootdb.db.(file_name).object(1)=struct;
+rootdb.db.(file_name).object(1).name = object_name;
+rootdb.db.(file_name).object(1).affordance = strsplit(object_affordance,',');
+rootdb.db.(file_name).object(1).position = rect_obj;
 
 rootdb.db.(file_name).width = y;
 rootdb.db.(file_name).height = x;
@@ -271,11 +260,18 @@ rootdb.db.(file_name).elbow_R = elbow2_xy;
 rootdb.db.(file_name).shoulder_L = shoulder1_xy;
 rootdb.db.(file_name).shoulder_R = shoulder2_xy;
 rootdb.db.(file_name).head = head_xy;
+
+save('rootdb.mat','rootdb');
+
 rect_obj = [];
 rect_pose = [];
-save('rootdb.mat','rootdb');
-clear rect_obj rect_pose wrist1_xy wrist2_xy ...
-    elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy
+wrist1_xy = [];
+wrist2_xy = [];
+elbow1_xy = [];
+elbow2_xy = [];
+shoulder1_xy = [];
+shoulder2_xy = [];
+head_xy = [];
 
 %check whether screenshot mode or file loading mode
 if file_index == 0;
@@ -331,8 +327,8 @@ if isempty(answer);
     return
 else
     if not (isempty(answer{1,1}));
-        object_name = answer{1,1};
-        object_affordance = answer{2,1};
+        object_name = lower(answer{1,1});
+        object_affordance = lower(answer{2,1});
     else
         return 
     end
@@ -347,9 +343,15 @@ function posture_box_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global rect_pose
 h_pose = imrect;
+h_pose_child = get(h_pose, 'Children');
+%get handle for context menu of imrect
+h_pose_cmenu = get(h_pose_child(1),'UIContextMenu');
+%add properties in context menu of imrect
+itemnew = uimenu(h_pose_cmenu, 'Label', 'Posture Info','Callback', @pose_info);
 rect_pose = [rect_pose;getPosition(h_pose)];
-% rect_pose = getrect;
-% rectangle('Position', rect_pose, 'EdgeColor', 'r');
+
+function pose_info(hObject, eventdata, handles)
+helpdlg('This is a rectangle for human posture','Info');
 
 
 % --------------------------------------------------------------------
@@ -371,42 +373,65 @@ function view_annotation_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global ROOT_PATH rootdb
-anno_name = uigetfile('*.*','View Annotation',ROOT_PATH);
+[anno_name,path_name] = uigetfile('*.*','View Annotation: Select the image',ROOT_PATH);
 if isempty(anno_name);
     return
 end
 
 [~,anno_filename,~] = fileparts(anno_name);
-imshow(strcat((ROOT_PATH),'\',anno_name));
 
-rectangle('Position',rootdb.db.(anno_filename).pos_obj,'Edgecolor','b');
-rectangle('Position',rootdb.db.(anno_filename).pos_pose,'Edgecolor','r');
+imshow(fullfile(path_name,anno_name));
+
+rectangle('Position',rootdb.db.(anno_filename).object(1).position,'Edgecolor','b');
+if not (isempty(rootdb.db.(anno_filename).pos_pose));
+    rectangle('Position',rootdb.db.(anno_filename).pos_pose,'Edgecolor','r');
+end
 %display wrist
-h_wrist1 = impoint(gca,rootdb.db.(anno_filename).wrist_L);
-setColor(h_wrist1,'r');
-setString(h_wrist1,'L');
-h_wrist2 = impoint(gca,rootdb.db.(anno_filename).wrist_R);
-setColor(h_wrist2,'r');
-setString(h_wrist2,'R');
+if not (isempty(rootdb.db.(anno_filename).wrist_L));
+    h_wrist1 = impoint(gca,rootdb.db.(anno_filename).wrist_L);
+    setColor(h_wrist1,'r');
+    setString(h_wrist1,'L');
+end
+
+if not (isempty(rootdb.db.(anno_filename).wrist_R));
+    h_wrist2 = impoint(gca,rootdb.db.(anno_filename).wrist_R);
+    setColor(h_wrist2,'r');
+    setString(h_wrist2,'R');
+end
 %display elbow
-h_elbow1 = impoint(gca,rootdb.db.(anno_filename).elbow_L);
-setColor(h_elbow1,'y');
-setString(h_elbow1,'L');
-h_elbow2 = impoint(gca,rootdb.db.(anno_filename).elbow_R);
-setColor(h_elbow2,'y');
-setString(h_elbow2,'R');
+if not (isempty(rootdb.db.(anno_filename).elbow_L));
+    h_elbow1 = impoint(gca,rootdb.db.(anno_filename).elbow_L);
+    setColor(h_elbow1,'y');
+    setString(h_elbow1,'L');
+end
+
+if not (isempty(rootdb.db.(anno_filename).elbow_R));
+    h_elbow2 = impoint(gca,rootdb.db.(anno_filename).elbow_R);
+    setColor(h_elbow2,'y');
+    setString(h_elbow2,'R');
+end
 %display shoulder
-h_shoulder1 = impoint(gca,rootdb.db.(anno_filename).shoulder_L);
-setColor(h_shoulder1,'c');
-setString(h_shoulder1,'L');
-h_shoulder2 = impoint(gca,rootdb.db.(anno_filename).shoulder_R);
-setColor(h_shoulder2,'c');
-setString(h_shoulder2,'R');
+if not (isempty(rootdb.db.(anno_filename).shoulder_L));
+    h_shoulder1 = impoint(gca,rootdb.db.(anno_filename).shoulder_L);
+    setColor(h_shoulder1,'c');
+    setString(h_shoulder1,'L');
+end
+
+if not (isempty(rootdb.db.(anno_filename).shoulder_R));
+    h_shoulder2 = impoint(gca,rootdb.db.(anno_filename).shoulder_R);
+    setColor(h_shoulder2,'c');
+    setString(h_shoulder2,'R');
+end
 %display head
-h_head = impoint(gca,rootdb.db.(anno_filename).head);
-setColor(h_head,'m');
+if not (isempty(rootdb.db.(anno_filename).head));
+    h_head = impoint(gca,rootdb.db.(anno_filename).head);
+    setColor(h_head,'m');
+end
 %setString(h_head,'head');
 %display other info (TODO: affordance path etc.)
+state_str = sprintf('%s\n%s%s','Annotation: ',anno_filename,' is loaded.');
+set(handles.state_text,'String',state_str);
+
 helpdlg({'Red --- Wrist' 'Yellow --- Elbow' 'Cyan --- Shoulder'...
      'Magenta --- Head'},'Info');
 
@@ -416,16 +441,18 @@ function load_image_Callback(hObject, eventdata, handles)
 % hObject    handle to load_image (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global I
+global I img_path file_index
 [filename,loadpath] = uigetfile('*.*','Source Selector');
 if filename==0;
     return
 else
-    I = imread(strcat(loadpath,filename));
+    img_path = strcat(loadpath,filename);
+    I = imread(img_path);
     axes(handles.axes2);
     imshow(I);
     state_str = sprintf('%s\n%s\n%s','Image loaded,','You can annotate now,','or Click "Crop" to crop.');
     set(handles.state_text,'String',state_str);
+    file_index = 0;
     
 end
 
