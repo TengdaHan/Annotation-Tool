@@ -441,7 +441,7 @@ function load_image_Callback(hObject, eventdata, handles)
 % hObject    handle to load_image (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global I img_path file_index
+global I img_path file_index object_name
 [filename,loadpath] = uigetfile('*.*','Source Selector');
 if filename==0;
     return
@@ -453,6 +453,7 @@ else
     state_str = sprintf('%s\n%s\n%s','Image loaded,','You can annotate now,','or Click "Crop" to crop.');
     set(handles.state_text,'String',state_str);
     file_index = 0;
+    object_name = [];
     
 end
 
