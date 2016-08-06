@@ -22,7 +22,7 @@ function varargout = snip_1(varargin)
 
 % Edit the above text to modify the response to help snip_1
 
-% Last Modified by GUIDE v2.5 26-Jul-2016 08:30:46
+% Last Modified by GUIDE v2.5 06-Aug-2016 12:03:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -180,7 +180,7 @@ function save_Callback(hObject, eventdata, handles)
 global object_name I I2 object_affordance file_path image_path object_link ...
     object_v_check  rootdb ROOT_PATH rect_obj rect_pose wrist1_xy wrist2_xy ...
     elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy ...
-    file_index filename_cell folder_name img_path
+    file_index filename_cell folder_name img_path video_path frame_index
 
 %load database
 try
@@ -208,7 +208,7 @@ end
 % object_name_n = strcat(object_name,num2str(rootdb.name.(object_name)));
 
 %save file
-if not (isempty(I2));
+if not (isempty(I2)); %crop image mode
     try
         %imwrite(I2,fullfile(ROOT_PATH,[object_name_n,'.png']));
         imwrite(I2,fullfile(ROOT_PATH,[object_name,'.png']));
@@ -225,9 +225,11 @@ if not (isempty(I2));
     [x,y,~] = size(I2);
     clear I2;
 else
-    if file_index == 0; %load image mode
+    if not (isempty(frame_index)); %load video mode
+        file_path = video_path;
+    elseif file_index == 0; %load image mode
         file_path = img_path;
-    else
+    else %load folder mode
         file_path = fullfile(folder_name,filename_cell{1,file_index});
     end
     [~,file_name,~] = fileparts(file_path);
@@ -251,6 +253,7 @@ rootdb.db.(file_name).height = x;
 rootdb.db.(file_name).image_path = image_path;
 rootdb.db.(file_name).link = object_link;
 rootdb.db.(file_name).video_check = object_v_check;
+rootdb.db.(file_name).frame = frame_index;
 
 rootdb.db.(file_name).pos_pose = rect_pose;
 rootdb.db.(file_name).wrist_L = wrist1_xy;
@@ -436,34 +439,6 @@ helpdlg({'Red --- Wrist' 'Yellow --- Elbow' 'Cyan --- Shoulder'...
      'Magenta --- Head'},'Info');
 
 
-% --------------------------------------------------------------------
-function load_image_Callback(hObject, eventdata, handles)
-% hObject    handle to load_image (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global I img_path file_index object_name
-[filename,loadpath] = uigetfile('*.*','Source Selector');
-if filename==0;
-    return
-else
-    img_path = strcat(loadpath,filename);
-    I = imread(img_path);
-    axes(handles.axes2);
-    imshow(I);
-    state_str = sprintf('%s\n%s\n%s','Image loaded,','You can annotate now,','or Click "Crop" to crop.');
-    set(handles.state_text,'String',state_str);
-    file_index = 0;
-    object_name = [];
-    
-end
-
-% --- Executes during object creation, after setting all properties.
-function load_image_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to load_image (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-
 % --- Executes on button press in wrist1.
 function wrist1_Callback(hObject, eventdata, handles)
 % hObject    handle to wrist1 (see GCBO)
@@ -567,6 +542,33 @@ set(handles.state_text,'String',state_str);
 I = imread(fullfile(folder_name,filename_cell{1,file_index}));
 imshow(I);
 
+% --------------------------------------------------------------------
+function load_image_Callback(hObject, eventdata, handles)
+% hObject    handle to load_image (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global I img_path file_index object_name
+[filename,loadpath] = uigetfile('*.*','Source Selector');
+if filename==0;
+    return
+else
+    img_path = strcat(loadpath,filename);
+    I = imread(img_path);
+    axes(handles.axes2);
+    imshow(I);
+    state_str = sprintf('%s\n%s\n%s','Image loaded,','You can annotate now,','or Click "Crop" to crop.');
+    set(handles.state_text,'String',state_str);
+    file_index = 0;
+    object_name = [];
+    
+end
+
+% --- Executes during object creation, after setting all properties.
+function load_image_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to load_image (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
 
 % --------------------------------------------------------------------
 function load_folder_Callback(hObject, eventdata, handles)
@@ -598,6 +600,37 @@ else
 %     I2 = imcrop(I);
 %     imshow(I2);
 end
+
+% --------------------------------------------------------------------
+function load_video_Callback(hObject, eventdata, handles)
+% hObject    handle to load_video (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global nFrame v frame_index video_path
+[filename,loadpath] = uigetfile('*.*','Source Selector');
+if filename==0;
+    return
+else
+    video_path = strcat(loadpath,filename);
+    v = VideoReader(video_path);
+    nFrame = v.NumberOfFrame;
+    
+    axes(handles.axes2);
+    imshow(read(v,1));
+    
+    set(handles.slider, 'Min', 1);
+    set(handles.slider, 'Max', nFrame);
+    set(handles.slider, 'SliderStep', [1,10]/(nFrame-1));
+    set(handles.slider, 'Value', 1); % set to beginning of sequence
+    
+    state_str = sprintf('%s\n%s\n%s','Video loaded,','Use slide bar to view and annotate,','then click "Save & Next".');
+    set(handles.state_text,'String',state_str);
+    
+    frame_index = 1;
+    index_str = ['1/',num2str(nFrame)];
+    set(handles.index_text,'String',index_str);
+end
+
 % --------------------------------------------------------------------
 function quit_Callback(hObject, eventdata, handles)
 % hObject    handle to quit (see GCBO)
@@ -663,3 +696,37 @@ function state_text_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to state_text (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+
+
+
+% --- Executes on slider movement.
+function slider_Callback(hObject, eventdata, handles)
+% hObject    handle to slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+global nFrame v I frame_index
+%n = get(hObject, 'Value');
+frame_index = round(hObject.Value);
+hObject.Value = frame_index;
+I = read(v,frame_index);
+axes(handles.axes2);
+imshow(I);
+
+index_str = [num2str(frame_index),'/',num2str(nFrame)];
+set(handles.index_text,'String',index_str);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function slider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
