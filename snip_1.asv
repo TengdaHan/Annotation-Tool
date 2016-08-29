@@ -809,17 +809,11 @@ end
 
 n = length(fieldnames(rootdb.videodb));
 rootdb.videodb.activity(n+1).start_index = frame_index_start;
-[h_start,m_start,s_start]=hms(seconds(round(frame_index_start/30,1)));
-rootdb.videodb.activity(n+1).start_time = [h_start,m_start,s_start];
+[h_start,m_start,s_start]=hms(seconds(round(frame_index_start/30,2)));
 
+rootdb.videodb.activity(n+1).start_time = frame_index_start/30;
 rootdb.videodb.activity(n+1).end_index = frame_index_end;
-[h_end,m_end,s_end]=hms(seconds(round(frame_index_end/30,1)));
-rootdb.videodb.activity(n+1).end_time = [h_end,m_end,s_end];
-
 rootdb.videodb.activity(n+1).total_frame = nFrame;
-[h_total,m_total,s_total]=hms(seconds(round(nFrame/30,1)));
-rootdb.videodb.activity(n+1).total_time = [h_total,m_total,s_total];
-
 rootdb.videodb.activity(n+1).action_label = activity;
 rootdb.videodb.activity(n+1).video_path = video_path;
 
