@@ -22,7 +22,7 @@ function varargout = snip_1(varargin)
 
 % Edit the above text to modify the response to help snip_1
 
-% Last Modified by GUIDE v2.5 06-Aug-2016 12:03:49
+% Last Modified by GUIDE v2.5 16-Aug-2016 18:28:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,7 +62,8 @@ guidata(hObject, handles);
 global ROOT_PATH object_name object_affordance ...
     file_path image_path object_link object_coord object_v_check rect_obj...
     rect_pose wrist1_xy wrist2_xy ...
-    elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy
+    elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy ...
+    toggle_state frame_index_start frame_index_end
 fp = fopen('annotation.config', 'r');
 ROOT_PATH = fscanf(fp, '%s');
 object_name = [];
@@ -83,6 +84,10 @@ elbow2_xy = [];
 shoulder1_xy = [];
 shoulder2_xy = [];
 head_xy = [];
+
+toggle_state = 0;
+frame_index_start = 0;
+frame_index_end = 0;
 
 % UIWAIT makes snip_1 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -180,7 +185,7 @@ function save_Callback(hObject, eventdata, handles)
 global object_name I I2 object_affordance file_path image_path object_link ...
     object_v_check  rootdb ROOT_PATH rect_obj rect_pose wrist1_xy wrist2_xy ...
     elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy ...
-    file_index filename_cell folder_name img_path video_path frame_index
+    file_index filename_cell folder_name img_path video_path frame_index ...
 
 %load database
 try
@@ -730,3 +735,105 @@ function slider_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+% --- Executes on button press in start_toggle.
+function start_toggle_Callback(hObject, eventdata, handles)
+% hObject    handle to start_toggle (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of start_toggle
+global toggle_state frame_index frame_index_start frame_index_end
+toggle_start = get(hObject,'Value');
+if (toggle_state==0) && (toggle_start==1);
+    frame_index_start = frame_index;
+    toggle_state = 1;
+    hObject.String = 'Stop';
+elseif (toggle_state==1) && (toggle_start==0);
+    frame_index_end = frame_index;
+    toggle_state = 0;
+    hObject.String = 'Start';
+    if frame_index_end <= frame_index_start;
+        helpdlg({'Frame Index Error : Ending frame index must be larger than starting frame index'},'Error');
+        return
+    end
+    if isempty(frame_index_start) && isempty(frame_index_end);
+        return
+    end
+    activity_annotation(hObject, eventdata, handles);
+    helpdlg({'Save Tempral Action ?'; strcat('Starting frame = ',num2str(frame_index_start));
+        strcat('ending frame = ',num2str(frame_index_end))},'Info');
+else
+    return
+end
+
+function activity_annotation(hObject, eventdata, handles)
+global activity 
+prompt = {'Activity:'};
+dlg_title = 'Annotation';
+num_lines = [1,40];
+defaultans = {''};
+activity = inputdlg(prompt,dlg_title,num_lines,defaultans);
+
+% --- Executes on button press in video_cancel.
+function video_cancel_Callback(hObject, eventdata, handles)
+% hObject    handle to video_cancel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global toggle_state frame_index_start frame_index_end
+toggle_state = 0;
+frame_index_start = 0;
+frame_index_end = 0;
+
+
+% --- Executes on button press in temporal_save.
+function temporal_save_Callback(hObject, eventdata, handles)
+% hObject    handle to temporal_save (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global frame_index_start frame_index_end rootdb activity nFrame video_path
+%load database
+try
+    load('rootdb.mat');
+catch
+    helpdlg('no database present, a new database is created', 'Info');
+    rootdb = struct;
+end
+if isempty(activity);
+    helpdlg('Activity name is not provided','Warning');
+end
+if not (isfield(rootdb, 'videodb'));
+    rootdb.videodb = struct;
+end
+
+n = length(fieldnames(rootdb.videodb));
+rootdb.videodb.activity(n+1).start_index = frame_index_start;
+[h_start,m_start,s_start]=hms(seconds(round(frame_index_start/30,1)));
+rootdb.videodb.activity(n+1).start_time = [h_start,m_start,s_start];
+
+rootdb.videodb.activity(n+1).end_index = frame_index_end;
+[h_end,m_end,s_end]=hms(seconds(round(frame_index_end/30,1)));
+rootdb.videodb.activity(n+1).end_time = [h_end,m_end,s_end];
+
+rootdb.videodb.activity(n+1).total_frame = nFrame;
+[h_total,m_total,s_total]=hms(seconds(round(nFrame/30,1)));
+rootdb.videodb.activity(n+1).total_time = [h_total,m_total,s_total];
+
+rootdb.videodb.activity(n+1).action_label = activity;
+rootdb.videodb.activity(n+1).video_path = video_path;
+
+if not (isfield(rootdb, 'actions'));
+    rootdb.actions = struct;
+end
+
+if isfield(rootdb.actions, activity{1,1});
+    rootdb.actions.(activity{1,1}) = rootdb.actions.(activity{1,1}) + 1;
+else
+    rootdb.actions.(activity{1,1}) = 1;
+end
+save('rootdb.mat','rootdb');
+state_str = sprintf('%s\n','Temporal Action Saved');
+set(handles.state_text,'String',state_str);
+
+
