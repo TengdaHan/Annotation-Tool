@@ -804,10 +804,10 @@ if isempty(activity);
     helpdlg('Activity name is not provided','Warning');
 end
 if not (isfield(rootdb, 'videodb'));
-    rootdb.videodb = struct;
+    rootdb.videodb.activity = struct;
 end
 
-n = length(fieldnames(rootdb.videodb));
+n = size(rootdb.videodb.activity,2);
 rootdb.videodb.activity(n+1).start_index = frame_index_start;
 [h_start,m_start,s_start]=hms(seconds(round(frame_index_start/30,1)));
 rootdb.videodb.activity(n+1).start_time = [h_start,m_start,s_start];
@@ -827,10 +827,11 @@ if not (isfield(rootdb, 'actions'));
     rootdb.actions = struct;
 end
 
-if isfield(rootdb.actions, activity{1,1});
-    rootdb.actions.(activity{1,1}) = rootdb.actions.(activity{1,1}) + 1;
+activity_fieldname = strrep(activity{1,1},' ','_');
+if isfield(rootdb.actions, activity_fieldname);
+    rootdb.actions.(activity_fieldname) = rootdb.actions.(activity_fieldname) + 1;
 else
-    rootdb.actions.(activity{1,1}) = 1;
+    rootdb.actions.(activity_fieldname) = 1;
 end
 save('rootdb.mat','rootdb');
 state_str = sprintf('%s\n','Temporal Action Saved');
