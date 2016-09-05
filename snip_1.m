@@ -22,7 +22,7 @@ function varargout = snip_1(varargin)
 
 % Edit the above text to modify the response to help snip_1
 
-% Last Modified by GUIDE v2.5 16-Aug-2016 18:28:09
+% Last Modified by GUIDE v2.5 01-Sep-2016 13:20:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,18 +63,19 @@ global ROOT_PATH object_name object_affordance ...
     file_path image_path object_link object_coord object_v_check rect_obj...
     rect_pose wrist1_xy wrist2_xy ...
     elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy ...
-    toggle_state frame_index_start frame_index_end
-fp = fopen('annotation.config', 'r');
-ROOT_PATH = fscanf(fp, '%s');
-object_name = [];
-object_affordance = [];
-
+    toggle_state frame_index_start frame_index_end dataset_dir
+%fp = fopen('annotation.config', 'r');
+%ROOT_PATH = fscanf(fp, '%s');
+config = textread('annotation.config','%s');
+ROOT_PATH = config(1);
+dataset_dir = config(2);
+object_name = '';
+object_affordance = '';
 file_path = 0;
 image_path = 0;
 object_link = 0;
 object_coord = 0;
 object_v_check = 0;
-
 rect_obj = [];
 rect_pose = [];
 wrist1_xy = [];
@@ -84,7 +85,6 @@ elbow2_xy = [];
 shoulder1_xy = [];
 shoulder2_xy = [];
 head_xy = [];
-
 toggle_state = 0;
 frame_index_start = 0;
 frame_index_end = 0;
@@ -186,7 +186,8 @@ global object_name I I2 object_affordance file_path image_path object_link ...
     object_v_check  rootdb ROOT_PATH rect_obj rect_pose wrist1_xy wrist2_xy ...
     elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy ...
     file_index filename_cell folder_name img_path video_path frame_index ...
-
+    h_wrist1 h_wrist2 h_elbow1 h_elbow2 h_shoulder1 h_shoulder2 h_head ...
+    dataset_dir
 %load database
 try
     load('rootdb.mat');
@@ -196,10 +197,10 @@ catch
 end
 
 %check object_name is not None
-if isempty(object_name);
-    helpdlg('Object Name is not provided','Info');
-    return
-end
+% if isempty(object_name);
+%     helpdlg('Object Name is not provided','Info');
+%     return
+% end
 
 % %check repeated object name
 % if isfield(rootdb.name, object_name);
@@ -208,7 +209,6 @@ end
 %     helpdlg('New Object Name Detected','Info');
 %     rootdb.name.(object_name) = 1;
 % end
-% 
 % %auto-name
 % object_name_n = strcat(object_name,num2str(rootdb.name.(object_name)));
 
@@ -242,51 +242,85 @@ else
 end
 
 %save info to database
-% for i = 1:length(object_name);
-%     rootdb.db.(file_path).(object_name(i)) = struct;
-%     rootdb.db.(file_path).(object_name(i)).affordance = strsplit(object_affordance(i),',');
-%     rootdb.db.(file_path).(object_name(i)).position = rect_obj(i);
+file_name = strrep(file_name, '-', '_');
+file_name = strrep(file_name, ' ', '_');
+if not (isfield(rootdb, 'db'));
+    rootdb.db.(file_name) = struct;
+end
+
+% for j = 1:numel(rootdb.db.(file_name));
+%     if rootdb.db.(file_name)(j).frame_index == frame_index;
+%         rootdb.db.(file_name)(j).obj_name = object_name;
+%         rootdb.db.(file_name)(j).obj_affordance = strsplit(object_affordance,',');
+%         rootdb.db.(file_name)(j).obj_position = rect_obj;
+%         rootdb.db.(file_name)(j).img_width = y;
+%         rootdb.db.(file_name)(j).img_height = x;
+%         if not (isempty(video_path));
+%             [~,name,ext]=fileparts(video_path);
+%             rootdb.db.(file_name)(j).path = fullfile(dataset_dir,strcat(name,ext));
+%         else
+%             rootdb.db.(file_name)(j).path = image_path;
+%         end
+%         %rootdb.db.(file_name)(j).img_link = object_link;
+%         rootdb.db.(file_name)(j).video_check = object_v_check;
+%         rootdb.db.(file_name)(j).frame_index = frame_index;
+% 
+%         rootdb.db.(file_name)(j).pose_position = rect_pose;
+%         rootdb.db.(file_name)(j).wrist_L = wrist1_xy;
+%         rootdb.db.(file_name)(j).wrist_R = wrist2_xy;
+%         rootdb.db.(file_name)(j).elbow_L = elbow1_xy;
+%         rootdb.db.(file_name)(j).elbow_R = elbow2_xy;
+%         rootdb.db.(file_name)(j).shoulder_L = shoulder1_xy;
+%         rootdb.db.(file_name)(j).shoulder_R = shoulder2_xy;
+%         rootdb.db.(file_name)(j).head = head_xy;
+%         save('rootdb.mat','rootdb');
+%     end
 % end
-rootdb.db.(file_name).object(1)=struct;
-rootdb.db.(file_name).object(1).name = object_name;
-rootdb.db.(file_name).object(1).affordance = strsplit(object_affordance,',');
-rootdb.db.(file_name).object(1).position = rect_obj;
 
-rootdb.db.(file_name).width = y;
-rootdb.db.(file_name).height = x;
+n = size(rootdb.db.(file_name),2);
+%rootdb.db.(file_name)(n+1) = struct;
+rootdb.db.(file_name)(n+1).obj_name = object_name;
+rootdb.db.(file_name)(n+1).obj_affordance = strsplit(object_affordance,',');
+rootdb.db.(file_name)(n+1).obj_position = rect_obj;
+rootdb.db.(file_name)(n+1).img_width = y;
+rootdb.db.(file_name)(n+1).img_height = x;
 
-rootdb.db.(file_name).image_path = image_path;
-rootdb.db.(file_name).link = object_link;
-rootdb.db.(file_name).video_check = object_v_check;
-rootdb.db.(file_name).frame = frame_index;
+if not (isempty(video_path));
+    [~,name,ext]=fileparts(video_path);
+    rootdb.db.(file_name)(n+1).path = fullfile(dataset_dir,strcat(name,ext));
+else
+    rootdb.db.(file_name)(n+1).path = image_path;
+end
+%rootdb.db.(file_name)(n+1).img_link = object_link;
+rootdb.db.(file_name)(n+1).video_check = object_v_check;
+rootdb.db.(file_name)(n+1).frame_index = frame_index;
 
-rootdb.db.(file_name).pos_pose = rect_pose;
-rootdb.db.(file_name).wrist_L = wrist1_xy;
-rootdb.db.(file_name).wrist_R = wrist2_xy;
-rootdb.db.(file_name).elbow_L = elbow1_xy;
-rootdb.db.(file_name).elbow_R = elbow2_xy;
-rootdb.db.(file_name).shoulder_L = shoulder1_xy;
-rootdb.db.(file_name).shoulder_R = shoulder2_xy;
-rootdb.db.(file_name).head = head_xy;
+wrist1_xy = getPosition(h_wrist1);
+wrist2_xy = getPosition(h_wrist2);
+elbow1_xy = getPosition(h_elbow1);
+elbow2_xy = getPosition(h_elbow2);
+shoulder1_xy = getPosition(h_shoulder1);
+shoulder2_xy = getPosition(h_shoulder2);
+head_xy = getPosition(h_head);
+
+rootdb.db.(file_name)(n+1).pose_position = rect_pose;
+rootdb.db.(file_name)(n+1).wrist_L = wrist1_xy;
+rootdb.db.(file_name)(n+1).wrist_R = wrist2_xy;
+rootdb.db.(file_name)(n+1).elbow_L = elbow1_xy;
+rootdb.db.(file_name)(n+1).elbow_R = elbow2_xy;
+rootdb.db.(file_name)(n+1).shoulder_L = shoulder1_xy;
+rootdb.db.(file_name)(n+1).shoulder_R = shoulder2_xy;
+rootdb.db.(file_name)(n+1).head = head_xy;
 
 save('rootdb.mat','rootdb');
 
-rect_obj = [];
-rect_pose = [];
-wrist1_xy = [];
-wrist2_xy = [];
-elbow1_xy = [];
-elbow2_xy = [];
-shoulder1_xy = [];
-shoulder2_xy = [];
-head_xy = [];
-
-%check whether screenshot mode or file loading mode
-if file_index == 0;
+%check whether screenshot mode or video mode or file loading mode or img
+%loading mode
+if file_index == 0; % screenshot mode or video mode or img loading mode
     state_str = sprintf('%s','Annotation saved.');
     set(handles.state_text,'String',state_str);
     return
-else
+else % file loading mode
     file_index = file_index + 1;
     if file_index > length(filename_cell);
         helpdlg('All Files in Current Folder are Loaded','Success');
@@ -309,14 +343,15 @@ function object_box_Callback(hObject, eventdata, handles)
 % hObject    handle to object_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global rect_obj
+global rect_obj h_obj
 h_obj = imrect;
 h_obj_child = get(h_obj, 'Children');
 %get handle for context menu of imrect
 h_obj_cmenu = get(h_obj_child(1),'UIContextMenu');
 %add properties in context menu of imrect
 itemnew = uimenu(h_obj_cmenu, 'Label', 'Properties','Callback', @obj_properties);
-rect_obj = [rect_obj; getPosition(h_obj)];
+%for multiple box: rect_obj = [rect_obj; getPosition(h_obj)];
+rect_obj = getPosition(h_obj);
 
 function obj_properties(hObject, eventdata, handles)
 global object_name object_affordance 
@@ -328,9 +363,7 @@ if isempty(object_name);
 else
     defaultans = {object_name,object_affordance};
 end
-
 answer = inputdlg(prompt,dlg_title,num_lines,defaultans);
-
 if isempty(answer);
     return
 else
@@ -342,25 +375,23 @@ else
     end
 end
 
-
-
 % --- Executes on button press in posture_box.
 function posture_box_Callback(hObject, eventdata, handles)
 % hObject    handle to posture_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global rect_pose
+global rect_pose h_pose
 h_pose = imrect;
+setColor(h_pose,'r');
 h_pose_child = get(h_pose, 'Children');
 %get handle for context menu of imrect
 h_pose_cmenu = get(h_pose_child(1),'UIContextMenu');
 %add properties in context menu of imrect
 itemnew = uimenu(h_pose_cmenu, 'Label', 'Posture Info','Callback', @pose_info);
-rect_pose = [rect_pose;getPosition(h_pose)];
+rect_pose = getPosition(h_pose);
 
 function pose_info(hObject, eventdata, handles)
 helpdlg('This is a rectangle for human posture','Info');
-
 
 % --------------------------------------------------------------------
 function file_Callback(hObject, eventdata, handles)
@@ -449,7 +480,7 @@ function wrist1_Callback(hObject, eventdata, handles)
 % hObject    handle to wrist1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global wrist1_xy
+global wrist1_xy h_wrist1
 %uiwait(msgbox('Locate first wrist'));
 h_wrist1 = impoint;
 setColor(h_wrist1,'r');
@@ -461,7 +492,7 @@ function wrist2_Callback(hObject, eventdata, handles)
 % hObject    handle to wrist2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global wrist2_xy
+global wrist2_xy h_wrist2
 h_wrist2 = impoint;
 setColor(h_wrist2,'r');
 setString(h_wrist2,'wrist-R');
@@ -472,7 +503,7 @@ function elbow1_Callback(hObject, eventdata, handles)
 % hObject    handle to elbow1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global elbow1_xy
+global elbow1_xy h_elbow1
 h_elbow1 = impoint;
 setColor(h_elbow1,'y');
 setString(h_elbow1,'elbow-L');
@@ -483,7 +514,7 @@ function elbow2_Callback(hObject, eventdata, handles)
 % hObject    handle to elbow2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global elbow2_xy
+global elbow2_xy h_elbow2
 h_elbow2 = impoint;
 setColor(h_elbow2,'y');
 setString(h_elbow2,'elbow-R');
@@ -494,7 +525,7 @@ function shoulder1_Callback(hObject, eventdata, handles)
 % hObject    handle to shoulder1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global shoulder1_xy
+global shoulder1_xy h_shoulder1
 h_shoulder1 = impoint;
 setColor(h_shoulder1,'c');
 setString(h_shoulder1,'shoulder-L');
@@ -505,7 +536,7 @@ function shoulder2_Callback(hObject, eventdata, handles)
 % hObject    handle to shoulder2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global shoulder2_xy
+global shoulder2_xy h_shoulder2
 h_shoulder2 = impoint;
 setColor(h_shoulder2,'c');
 setString(h_shoulder2,'shoulder-R');
@@ -516,7 +547,7 @@ function head_Callback(hObject, eventdata, handles)
 % hObject    handle to head (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global head_xy
+global head_xy h_head
 h_head = impoint;
 setColor(h_head,'m');
 setString(h_head,'head');
@@ -611,8 +642,9 @@ function load_video_Callback(hObject, eventdata, handles)
 % hObject    handle to load_video (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global nFrame v frame_index video_path
+global nFrame v frame_index video_path file_index
 [filename,loadpath] = uigetfile('*.*','Source Selector');
+file_index = 0;
 if filename==0;
     return
 else
@@ -712,13 +744,74 @@ function slider_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-global nFrame v I frame_index
+global nFrame v I frame_index rect_obj rect_pose wrist1_xy ... 
+    wrist2_xy elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy ... 
+    h_wrist1 h_wrist2 h_elbow1 h_elbow2 h_shoulder1 h_shoulder2 h_head h_obj ...
+    h_pose
 %n = get(hObject, 'Value');
 frame_index = round(hObject.Value);
 hObject.Value = frame_index;
 I = read(v,frame_index);
 axes(handles.axes2);
 imshow(I);
+
+if get(handles.disp_toggle, 'Value') == 1;   
+    if not (isempty(h_wrist1));
+        h_wrist1 = impoint(gca, wrist1_xy);
+        setColor(h_wrist1,'r');
+        setString(h_wrist1,'L');
+    end
+    if not (isempty(h_wrist2));
+        h_wrist2 = impoint(gca, wrist2_xy);
+        setColor(h_wrist2,'r');
+        setString(h_wrist2,'R');
+    end
+    if not (isempty(h_elbow1));
+        h_elbow1 = impoint(gca, elbow1_xy);
+        setColor(h_elbow1,'y');
+        setString(h_elbow1,'L');
+    end
+    if not (isempty(h_elbow2));
+        h_elbow2 = impoint(gca, elbow2_xy);
+        setColor(h_elbow2,'y');
+        setString(h_elbow2,'R');
+    end
+    if not (isempty(h_shoulder1));
+        h_shoulder1 = impoint(gca, shoulder1_xy);
+        setColor(h_shoulder1,'c');
+        setString(h_shoulder1,'L');
+    end
+    if not (isempty(h_shoulder2));
+        h_shoulder2 = impoint(gca, shoulder2_xy);
+        setColor(h_shoulder2,'c');
+        setString(h_shoulder2,'R');
+    end
+    if not (isempty(h_head));
+        h_head = impoint(gca, head_xy);
+        setColor(h_head,'m');
+        setString(h_head,'head');
+    end
+    if not (isempty(rect_obj));
+        h_obj = imrect(gca, rect_obj);
+        h_obj_child = get(h_obj, 'Children');
+        %get handle for context menu of imrect
+        h_obj_cmenu = get(h_obj_child(1),'UIContextMenu');
+        %add properties in context menu of imrect
+        itemnew = uimenu(h_obj_cmenu, 'Label', 'Properties','Callback', @obj_properties);
+        %for multiple box: rect_obj = [rect_obj; getPosition(h_obj)];
+        rect_obj = getPosition(h_obj);%single box
+    end
+    if not (isempty(rect_pose));
+        h_pose = imrect(gca, rect_pose);
+        setColor(h_pose,'r');
+        h_pose_child = get(h_pose, 'Children');
+        %get handle for context menu of imrect
+        h_pose_cmenu = get(h_pose_child(1),'UIContextMenu');
+        %add properties in context menu of imrect
+        itemnew = uimenu(h_pose_cmenu, 'Label', 'Posture Info','Callback', @pose_info);
+        rect_pose = getPosition(h_pose);
+    end
+end
 
 index_str = [num2str(frame_index),'/',num2str(nFrame)];
 set(handles.index_text,'String',index_str);
@@ -792,7 +885,7 @@ function temporal_save_Callback(hObject, eventdata, handles)
 % hObject    handle to temporal_save (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global frame_index_start frame_index_end rootdb activity nFrame video_path
+global frame_index_start frame_index_end rootdb activity nFrame video_path dataset_dir
 %load database
 try
     load('rootdb.mat');
@@ -821,7 +914,9 @@ rootdb.videodb.activity(n+1).total_frame = nFrame;
 rootdb.videodb.activity(n+1).total_time = [h_total,m_total,s_total];
 
 rootdb.videodb.activity(n+1).action_label = activity;
-rootdb.videodb.activity(n+1).video_path = video_path;
+[~,name,ext]=fileparts(video_path);
+
+rootdb.videodb.activity(n+1).video_path = fullfile(dataset_dir,strcat(name,ext));
 
 if not (isfield(rootdb, 'actions'));
     rootdb.actions = struct;
@@ -837,4 +932,10 @@ save('rootdb.mat','rootdb');
 state_str = sprintf('%s\n','Temporal Action Saved');
 set(handles.state_text,'String',state_str);
 
+% --- Executes on button press in disp_toggle.
+function disp_toggle_Callback(hObject, eventdata, handles)
+% hObject    handle to disp_toggle (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+% Hint: get(hObject,'Value') returns toggle state of disp_toggle
