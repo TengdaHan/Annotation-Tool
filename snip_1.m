@@ -750,9 +750,9 @@ global nFrame v I frame_index rect_obj rect_pose wrist1_xy ...
     h_pose
 %n = get(hObject, 'Value');
 frame_index = round(hObject.Value);
-hObject.Value = frame_index;
+% hObject.Value = frame_index;
 I = read(v,frame_index);
-axes(handles.axes2);
+% axes(handles.axes2);
 imshow(I);
 
 if get(handles.disp_toggle, 'Value') == 1;   
