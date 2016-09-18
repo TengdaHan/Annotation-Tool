@@ -657,7 +657,7 @@ else
     
     set(handles.slider, 'Min', 1);
     set(handles.slider, 'Max', nFrame);
-    set(handles.slider, 'SliderStep', [1,30]/(nFrame-1));
+    set(handles.slider, 'SliderStep', [1,15]/(nFrame-1));
     set(handles.slider, 'Value', 1); % set to beginning of sequence
     
     state_str = sprintf('%s\n%s\n%s','Video loaded,','Use slide bar to view and annotate,','then click "Save & Next".');
@@ -753,9 +753,7 @@ frame_index = round(hObject.Value);
 % hObject.Value = frame_index;
 I = read(v,frame_index);
 % axes(handles.axes2);
-%imshow(I);
-I2 = im2uint8(I);
-imagesc(I2, 'Parent', handles.axes2);
+H = imshow(I);
 
 if get(handles.disp_toggle, 'Value') == 1;   
     if not (isempty(h_wrist1));
