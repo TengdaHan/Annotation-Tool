@@ -247,7 +247,7 @@ file_name = strrep(file_name, ' ', '_');
 if not (isfield(rootdb, 'db'));
     rootdb.db = struct;
 end
-if not (isfield(rootdb, 'db'));
+if not (isfield(rootdb.db, file_name));
     rootdb.db.(file_name) = struct;
 end
 
