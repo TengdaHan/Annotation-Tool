@@ -281,7 +281,9 @@ end
 % end
 
 n = size(rootdb.db.(file_name),2);
-%rootdb.db.(file_name)(n+1) = struct;
+if n == 1;
+    n = 0;
+end
 rootdb.db.(file_name)(n+1).obj_name = object_name;
 rootdb.db.(file_name)(n+1).obj_affordance = strsplit(object_affordance,',');
 rootdb.db.(file_name)(n+1).obj_position = rect_obj;
@@ -415,7 +417,7 @@ function view_annotation_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global ROOT_PATH rootdb
-[anno_name,path_name] = uigetfile('*.*','View Annotation: Select the image',ROOT_PATH);
+[anno_name,path_name] = uigetfile('*.*','View Annotation: Select the image');
 if isempty(anno_name);
     return
 end
@@ -424,9 +426,11 @@ end
 
 imshow(fullfile(path_name,anno_name));
 
-rectangle('Position',rootdb.db.(anno_filename).object(1).position,'Edgecolor','b');
-if not (isempty(rootdb.db.(anno_filename).pos_pose));
-    rectangle('Position',rootdb.db.(anno_filename).pos_pose,'Edgecolor','r');
+if not (isempty(rootdb.db.(anno_filename).obj_position));
+    rectangle('Position',rootdb.db.(anno_filename).obj_position,'Edgecolor','b');
+end
+if not (isempty(rootdb.db.(anno_filename).pose_position));
+    rectangle('Position',rootdb.db.(anno_filename).pose_position,'Edgecolor','r');
 end
 %display wrist
 if not (isempty(rootdb.db.(anno_filename).wrist_L));
