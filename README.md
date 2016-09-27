@@ -48,3 +48,8 @@
     * Type activity name in the pop-up window, and click 'OK'
     * Information window will appear, click 'OK'
     * If you want to save this activity annotation, click 'Save' on the most right panel. If you want to discard this activity annotation, just move on to do the next activity without click 'Save'.  
+    
+## Compatibility
+  1. When run the tool in Matlab in ubuntu (tested on ubuntu16/14), Error about the function 'VideoReader()' will be reported. It is because in Linux Matlab, the VideoReader function requites the plugin 'gstreamer0.10'. However ubuntu 16 installed gstreamer as default. 
+    * Solution: Installed gstreamer0.10-tools and gstreamer0.10-plugins-good, and then restart Matlab. 
+    * Useful links: [Mathworks Answers](http://au.mathworks.com/matlabcentral/answers/144391-trouble-with-videoreader-on-mac-or-with-different-matlab-versions), [Mathworks Bug Reports](http://www.mathworks.com/support/bugreports/1246784).
