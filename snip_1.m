@@ -22,7 +22,7 @@ function varargout = snip_1(varargin)
 
 % Edit the above text to modify the response to help snip_1
 
-% Last Modified by GUIDE v2.5 01-Sep-2016 13:20:40
+% Last Modified by GUIDE v2.5 04-Nov-2016 13:46:55
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,7 +63,7 @@ global ROOT_PATH object_name object_affordance ...
     file_path image_path object_link object_coord object_v_check rect_obj...
     rect_pose wrist1_xy wrist2_xy ...
     elbow1_xy elbow2_xy shoulder1_xy shoulder2_xy head_xy ...
-    toggle_state frame_index_start frame_index_end dataset_dir
+    toggle_state frame_index_start frame_index_end dataset_dir label_state
 %fp = fopen('annotation.config', 'r');
 %ROOT_PATH = fscanf(fp, '%s');
 config = textread('annotation.config','%s');
@@ -88,6 +88,7 @@ head_xy = [];
 toggle_state = 0;
 frame_index_start = 0;
 frame_index_end = 0;
+label_state = 1;
 
 % UIWAIT makes snip_1 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -213,7 +214,7 @@ end
 % object_name_n = strcat(object_name,num2str(rootdb.name.(object_name)));
 
 %save file
-if not (isempty(I2)); %crop image mode
+if I2 %crop image mode
     try
         %imwrite(I2,fullfile(ROOT_PATH,[object_name_n,'.png']));
         imwrite(I2,fullfile(ROOT_PATH,[object_name,'.png']));
@@ -230,9 +231,9 @@ if not (isempty(I2)); %crop image mode
     [x,y,~] = size(I2);
     clear I2;
 else
-    if not (isempty(frame_index)); %load video mode
+    if frame_index %load video mode
         file_path = video_path;
-    elseif file_index == 0; %load image mode
+    elseif file_index == 0 %load image mode
         file_path = img_path;
     else %load folder mode
         file_path = fullfile(folder_name,filename_cell{1,file_index});
@@ -244,10 +245,10 @@ end
 %save info to database
 file_name = strrep(file_name, '-', '_');
 file_name = strrep(file_name, ' ', '_');
-if not (isfield(rootdb, 'db'));
+if not (isfield(rootdb, 'db'))
     rootdb.db = struct;
 end
-if not (isfield(rootdb.db, file_name));
+if not (isfield(rootdb.db, file_name))
     rootdb.db.(file_name) = struct;
 end
 
@@ -281,7 +282,7 @@ end
 % end
 
 n = size(rootdb.db.(file_name),2);
-if n == 1;
+if n == 1
     n = 0;
 end
 rootdb.db.(file_name)(n+1).obj_name = object_name;
@@ -290,7 +291,7 @@ rootdb.db.(file_name)(n+1).obj_position = rect_obj;
 rootdb.db.(file_name)(n+1).img_width = y;
 rootdb.db.(file_name)(n+1).img_height = x;
 
-if not (isempty(video_path));
+if video_path
     [~,name,ext]=fileparts(video_path);
     rootdb.db.(file_name)(n+1).path = fullfile(dataset_dir,strcat(name,ext));
 else
@@ -321,17 +322,17 @@ save('rootdb.mat','rootdb');
 
 %check whether screenshot mode or video mode or file loading mode or img
 %loading mode
-if file_index == 0; % screenshot mode or video mode or img loading mode
+if file_index == 0 % screenshot mode or video mode or img loading mode
     state_str = sprintf('%s','Annotation saved.');
     set(handles.state_text,'String',state_str);
     return
 else % file loading mode
     file_index = file_index + 1;
-    if file_index > length(filename_cell);
+    if file_index > length(filename_cell)
         helpdlg('All Files in Current Folder are Loaded','Success');
         return
     end
-    index_str = ['Index: ',num2str(file_index),'/',num2str(length(filename_cell))];
+    index_str = [num2str(file_index),'/',num2str(length(filename_cell))];
     set(handles.index_text,'String',index_str);
     state_str = sprintf('%s\n%s\n%s','Annotation saved,','Click "Crop" to crop,','Or Click "Skip & Next".');
     set(handles.state_text,'String',state_str);
@@ -363,16 +364,16 @@ global object_name object_affordance
 prompt = {'Object Name:','Object Affordance:'};
 dlg_title = 'Object';
 num_lines = [1,40];
-if isempty(object_name);
+if isempty(object_name)
     defaultans = {'',''};
 else
     defaultans = {object_name,object_affordance};
 end
 answer = inputdlg(prompt,dlg_title,num_lines,defaultans);
-if isempty(answer);
+if isempty(answer)
     return
 else
-    if not (isempty(answer{1,1}));
+    if not (isempty(answer{1,1}))
         object_name = lower(answer{1,1});
         object_affordance = lower(answer{2,1});
     else
@@ -418,7 +419,7 @@ function view_annotation_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global ROOT_PATH rootdb
 [anno_name,path_name] = uigetfile('*.*','View Annotation: Select the image');
-if isempty(anno_name);
+if isempty(anno_name)
     return
 end
 
@@ -426,54 +427,55 @@ end
 
 imshow(fullfile(path_name,anno_name));
 
-if not (isempty(rootdb.db.(anno_filename).obj_position));
+if not (isempty(rootdb.db.(anno_filename).obj_position))
     rectangle('Position',rootdb.db.(anno_filename).obj_position,'Edgecolor','b');
 end
-if not (isempty(rootdb.db.(anno_filename).pose_position));
+if not (isempty(rootdb.db.(anno_filename).pose_position))
     rectangle('Position',rootdb.db.(anno_filename).pose_position,'Edgecolor','r');
 end
 %display wrist
-if not (isempty(rootdb.db.(anno_filename).wrist_L));
+if not (isempty(rootdb.db.(anno_filename).wrist_L))
     h_wrist1 = impoint(gca,rootdb.db.(anno_filename).wrist_L);
     setColor(h_wrist1,'r');
     setString(h_wrist1,'L');
 end
 
-if not (isempty(rootdb.db.(anno_filename).wrist_R));
+if not (isempty(rootdb.db.(anno_filename).wrist_R))
     h_wrist2 = impoint(gca,rootdb.db.(anno_filename).wrist_R);
     setColor(h_wrist2,'r');
     setString(h_wrist2,'R');
 end
 %display elbow
-if not (isempty(rootdb.db.(anno_filename).elbow_L));
+if not (isempty(rootdb.db.(anno_filename).elbow_L))
     h_elbow1 = impoint(gca,rootdb.db.(anno_filename).elbow_L);
     setColor(h_elbow1,'y');
     setString(h_elbow1,'L');
 end
 
-if not (isempty(rootdb.db.(anno_filename).elbow_R));
+if not (isempty(rootdb.db.(anno_filename).elbow_R))
     h_elbow2 = impoint(gca,rootdb.db.(anno_filename).elbow_R);
     setColor(h_elbow2,'y');
     setString(h_elbow2,'R');
 end
 %display shoulder
-if not (isempty(rootdb.db.(anno_filename).shoulder_L));
+if not (isempty(rootdb.db.(anno_filename).shoulder_L))
     h_shoulder1 = impoint(gca,rootdb.db.(anno_filename).shoulder_L);
     setColor(h_shoulder1,'c');
     setString(h_shoulder1,'L');
 end
 
-if not (isempty(rootdb.db.(anno_filename).shoulder_R));
+if not (isempty(rootdb.db.(anno_filename).shoulder_R))
     h_shoulder2 = impoint(gca,rootdb.db.(anno_filename).shoulder_R);
     setColor(h_shoulder2,'c');
     setString(h_shoulder2,'R');
 end
 %display head
-if not (isempty(rootdb.db.(anno_filename).head));
+if not (isempty(rootdb.db.(anno_filename).head))
     h_head = impoint(gca,rootdb.db.(anno_filename).head);
     setColor(h_head,'m');
+    setString(h_head,'head');
 end
-%setString(h_head,'head');
+    
 %display other info (TODO: affordance path etc.)
 state_str = sprintf('%s\n%s%s','Annotation: ',anno_filename,' is loaded.');
 set(handles.state_text,'String',state_str);
@@ -487,11 +489,13 @@ function wrist1_Callback(hObject, eventdata, handles)
 % hObject    handle to wrist1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global wrist1_xy h_wrist1
+global wrist1_xy h_wrist1 label_state
 %uiwait(msgbox('Locate first wrist'));
 h_wrist1 = impoint;
 setColor(h_wrist1,'r');
-setString(h_wrist1,'wrist-L');
+if (label_state == 1)
+    setString(h_wrist1,'wrist-L');
+end
 wrist1_xy = getPosition(h_wrist1);
 
 % --- Executes on button press in wrist2.
@@ -499,10 +503,12 @@ function wrist2_Callback(hObject, eventdata, handles)
 % hObject    handle to wrist2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global wrist2_xy h_wrist2
+global wrist2_xy h_wrist2 label_state
 h_wrist2 = impoint;
 setColor(h_wrist2,'r');
-setString(h_wrist2,'wrist-R');
+if (label_state == 1)
+    setString(h_wrist2,'wrist-R');
+end
 wrist2_xy = getPosition(h_wrist2);
 
 % --- Executes on button press in elbow1.
@@ -510,10 +516,12 @@ function elbow1_Callback(hObject, eventdata, handles)
 % hObject    handle to elbow1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global elbow1_xy h_elbow1
+global elbow1_xy h_elbow1 label_state
 h_elbow1 = impoint;
 setColor(h_elbow1,'y');
-setString(h_elbow1,'elbow-L');
+if (label_state == 1)
+    setString(h_elbow1,'elbow-L');
+end
 elbow1_xy = getPosition(h_elbow1);
 
 % --- Executes on button press in elbow2.
@@ -521,10 +529,12 @@ function elbow2_Callback(hObject, eventdata, handles)
 % hObject    handle to elbow2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global elbow2_xy h_elbow2
+global elbow2_xy h_elbow2 label_state
 h_elbow2 = impoint;
 setColor(h_elbow2,'y');
-setString(h_elbow2,'elbow-R');
+if (label_state == 1)
+    setString(h_elbow2,'elbow-R');
+end
 elbow2_xy = getPosition(h_elbow2);
 
 % --- Executes on button press in shoulder1.
@@ -532,10 +542,12 @@ function shoulder1_Callback(hObject, eventdata, handles)
 % hObject    handle to shoulder1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global shoulder1_xy h_shoulder1
+global shoulder1_xy h_shoulder1 label_state
 h_shoulder1 = impoint;
 setColor(h_shoulder1,'c');
-setString(h_shoulder1,'shoulder-L');
+if (label_state == 1)
+    setString(h_shoulder1,'shoulder-L');
+end
 shoulder1_xy = getPosition(h_shoulder1);
 
 % --- Executes on button press in shoulder2.
@@ -543,10 +555,12 @@ function shoulder2_Callback(hObject, eventdata, handles)
 % hObject    handle to shoulder2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global shoulder2_xy h_shoulder2
+global shoulder2_xy h_shoulder2 label_state
 h_shoulder2 = impoint;
 setColor(h_shoulder2,'c');
-setString(h_shoulder2,'shoulder-R');
+if (label_state == 1)
+    setString(h_shoulder2,'shoulder-R');
+end
 shoulder2_xy = getPosition(h_shoulder2);
 
 % --- Executes on button press in head.
@@ -554,10 +568,12 @@ function head_Callback(hObject, eventdata, handles)
 % hObject    handle to head (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global head_xy h_head
+global head_xy h_head label_state
 h_head = impoint;
 setColor(h_head,'m');
-setString(h_head,'head');
+if (label_state == 1)
+    setString(h_head,'head');
+end
 head_xy = getPosition(h_head);
 
 % --- Executes on button press in skip.
@@ -566,22 +582,21 @@ function skip_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global filename_cell file_index I folder_name 
-if file_index == 0;
+if file_index == 0
     helpdlg('"Skip & Next" is Invalid in This Mode','Info');
     return
 end
 
 file_index = file_index + 1;
-if file_index > length(filename_cell);
+if file_index > length(filename_cell)
     helpdlg('All Files in Current Folder are Loaded','Success');
     return
 end
 
-index_str = ['Index: ',num2str(file_index),'/',num2str(length(filename_cell))];
+index_str = [num2str(file_index),'/',num2str(length(filename_cell))];
 set(handles.index_text,'String',index_str);
 state_str = sprintf('%s\n%s\n%s','You can annotate now,','or Click "Crop" to crop,','or Click "Skip & Next".');
 set(handles.state_text,'String',state_str);
-
 I = imread(fullfile(folder_name,filename_cell{1,file_index}));
 imshow(I);
 
@@ -592,7 +607,7 @@ function load_image_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global I img_path file_index object_name
 [filename,loadpath] = uigetfile('*.*','Source Selector');
-if filename==0;
+if filename == 0
     return
 else
     img_path = strcat(loadpath,filename);
@@ -620,13 +635,13 @@ function load_folder_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global I I2 filename_cell file_index folder_name
 folder_name = uigetdir('C:\','Select Directory to Load');
-if folder_name==0;
+if folder_name == 0
     return
 else
     dir_info = dir(folder_name);
     dir_length = length(dir_info);
     filename_cell = cell(1,dir_length-2);
-    for i = 3:dir_length;
+    for i = 3:dir_length
         filename_cell{1,i-2} = dir_info(i).name;
     end
     I = imread(fullfile(folder_name,dir_info(i).name));
@@ -652,7 +667,7 @@ function load_video_Callback(hObject, eventdata, handles)
 global nFrame v frame_index video_path file_index
 [filename,loadpath] = uigetfile('*.*','Source Selector');
 file_index = 0;
-if filename==0;
+if filename == 0
     return
 else
     video_path = strcat(loadpath,filename);
@@ -764,43 +779,43 @@ I = read(v,frame_index);
 I2 = im2uint8(I);
 imagesc(I2, 'Parent', handles.axes2);
 
-if get(handles.disp_toggle, 'Value') == 1;   
-    if not (isempty(h_wrist1));
+if get(handles.disp_toggle, 'Value') == 1 
+    if (h_wrist1)
         h_wrist1 = impoint(gca, wrist1_xy);
         setColor(h_wrist1,'r');
         setString(h_wrist1,'L');
     end
-    if not (isempty(h_wrist2));
+    if h_wrist2
         h_wrist2 = impoint(gca, wrist2_xy);
         setColor(h_wrist2,'r');
         setString(h_wrist2,'R');
     end
-    if not (isempty(h_elbow1));
+    if h_elbow1
         h_elbow1 = impoint(gca, elbow1_xy);
         setColor(h_elbow1,'y');
         setString(h_elbow1,'L');
     end
-    if not (isempty(h_elbow2));
+    if h_elbow2
         h_elbow2 = impoint(gca, elbow2_xy);
         setColor(h_elbow2,'y');
         setString(h_elbow2,'R');
     end
-    if not (isempty(h_shoulder1));
+    if h_shoulder1
         h_shoulder1 = impoint(gca, shoulder1_xy);
         setColor(h_shoulder1,'c');
         setString(h_shoulder1,'L');
     end
-    if not (isempty(h_shoulder2));
+    if h_shoulder2
         h_shoulder2 = impoint(gca, shoulder2_xy);
         setColor(h_shoulder2,'c');
         setString(h_shoulder2,'R');
     end
-    if not (isempty(h_head));
+    if h_head
         h_head = impoint(gca, head_xy);
         setColor(h_head,'m');
         setString(h_head,'head');
     end
-    if not (isempty(rect_obj));
+    if rect_obj
         h_obj = imrect(gca, rect_obj);
         h_obj_child = get(h_obj, 'Children');
         %get handle for context menu of imrect
@@ -810,7 +825,7 @@ if get(handles.disp_toggle, 'Value') == 1;
         %for multiple box: rect_obj = [rect_obj; getPosition(h_obj)];
         rect_obj = getPosition(h_obj);%single box
     end
-    if not (isempty(rect_pose));
+    if rect_pose
         h_pose = imrect(gca, rect_pose);
         setColor(h_pose,'r');
         h_pose_child = get(h_pose, 'Children');
@@ -848,21 +863,21 @@ function start_toggle_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of start_toggle
 global toggle_state frame_index frame_index_start frame_index_end
 toggle_start = get(hObject,'Value');
-if (toggle_state==0) && (toggle_start==1);
+if (toggle_state==0) && (toggle_start==1)
     frame_index_start = frame_index;
     toggle_state = 1;
     hObject.String = 'Stop';
     state_str = sprintf('%s\n','Click "Stop" when action finishes');
     set(handles.state_text,'String',state_str);
-elseif (toggle_state==1) && (toggle_start==0);
+elseif (toggle_state==1) && (toggle_start==0)
     frame_index_end = frame_index;
     toggle_state = 0;
     hObject.String = 'Start';
-    if frame_index_end <= frame_index_start;
+    if frame_index_end <= frame_index_start
         helpdlg({'Frame Index Error : Ending frame index must be larger than starting frame index'},'Error');
         return
     end
-    if isempty(frame_index_start) && isempty(frame_index_end);
+    if isempty(frame_index_start) && isempty(frame_index_end)
         return
     end
     activity_annotation(hObject, eventdata, handles);
@@ -906,10 +921,10 @@ catch
     helpdlg('no database present, a new database is created', 'Info');
     rootdb = struct;
 end
-if isempty(activity);
+if isempty(activity)
     helpdlg('Activity name is not provided','Warning');
 end
-if not (isfield(rootdb, 'videodb'));
+if not (isfield(rootdb, 'videodb'))
     rootdb.videodb.activity = struct;
 end
 
@@ -931,12 +946,12 @@ rootdb.videodb.activity(n+1).action_label = activity;
 
 rootdb.videodb.activity(n+1).video_path = fullfile(dataset_dir,strcat(name,ext));
 
-if not (isfield(rootdb, 'actions'));
+if not (isfield(rootdb, 'actions'))
     rootdb.actions = struct;
 end
 
 activity_fieldname = strrep(activity{1,1},' ','_');
-if isfield(rootdb.actions, activity_fieldname);
+if isfield(rootdb.actions, activity_fieldname)
     rootdb.actions.(activity_fieldname) = rootdb.actions.(activity_fieldname) + 1;
 else
     rootdb.actions.(activity_fieldname) = 1;
@@ -952,3 +967,72 @@ function disp_toggle_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of disp_toggle
+
+
+
+function index_text_Callback(hObject, eventdata, handles)
+% hObject    handle to index_text (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of index_text as text
+%        str2double(get(hObject,'String')) returns contents of index_text as a double
+
+
+% --- Executes on button press in Annot_Labels.
+function Annot_Labels_Callback(hObject, eventdata, handles)
+% hObject    handle to Annot_Labels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global label_state h_wrist1 h_wrist2 h_elbow1 h_elbow2 h_shoulder1 h_shoulder2;
+if (label_state == 1)
+    label_state = 0;
+    set(handles.Annot_Labels,'string','Labels (Off)');
+    %h_wrist1 = impoint(gca,rootdb.db.(anno_filename).wrist_L);  
+    %setString(h_shoulder1,'');
+    %Can't figure out a way to toggle live labels.
+else
+    label_state = 1;
+    set(handles.Annot_Labels,'string','Labels (On)');
+end
+
+
+
+function IndexJump_Callback(hObject, eventdata, handles)
+% hObject    handle to IndexJump (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of IndexJump as text
+%        str2double(get(hObject,'String')) returns contents of IndexJump as a double
+
+editjump = get(hObject,'String');
+
+
+% --- Executes during object creation, after setting all properties.
+function IndexJump_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to IndexJump (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in IndexJumpButton.
+function IndexJumpButton_Callback(hObject, eventdata, handles)
+% hObject    handle to IndexJumpButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global file_index filename_cell I folder_name 
+h = findobj('Tag', 'IndexJump');
+file_index = str2double(h.String);
+index_str = [num2str(file_index),'/',num2str(length(filename_cell))];
+set(handles.index_text,'String',index_str);
+state_str = sprintf('%s\n%s\n%s','You can annotate now,','or Click "Crop" to crop,','or Click "Skip & Next".');
+set(handles.state_text,'String',state_str);
+I = imread(fullfile(folder_name,filename_cell{1,file_index}));
+imshow(I);
